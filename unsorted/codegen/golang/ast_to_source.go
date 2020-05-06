@@ -69,8 +69,8 @@ func separator(w io.Writer, i int, sep string) {
 	}
 }
 
-func sepFormat(s fmt.State, c rune, i int, f fmt.Formatter) {
-	separator(s, i, ", ")
+func sepFormat(s fmt.State, c rune, i int, f fmt.Formatter, sep string) {
+	separator(s, i, sep)
 	if f != nil {
 		f.Format(s, c)
 	}
@@ -105,11 +105,11 @@ func (n *AssignStmt) Format(s fmt.State, c rune) {
 		return
 	}
 	for i, expr := range n.LHS {
-		sepFormat(s, c, i, expr)
+		sepFormat(s, c, i, expr, ", ")
 	}
 	n.Tok.Format(s, c)
 	for i, expr := range n.RHS {
-		sepFormat(s, c, i, expr)
+		sepFormat(s, c, i, expr, ", ")
 	}
 }
 
@@ -180,7 +180,7 @@ func (n *CallExpr) Format(s fmt.State, c rune) {
 	}
 	scPrintf(s, c, "%c(", n.Fun)
 	for i, expr := range n.Args {
-		sepFormat(s, c, i, expr)
+		sepFormat(s, c, i, expr, ", ")
 	}
 	scPrintf(s, c, "%c)", &n.Ellipsis)
 }
@@ -195,7 +195,7 @@ func (n *CaseClause) Format(s fmt.State, c rune) {
 	} else {
 		fmt.Fprint(s, "case ")
 		for i, expr := range n.List {
-			sepFormat(s, c, i, expr)
+			sepFormat(s, c, i, expr, ", ")
 		}
 		fmt.Fprint(s, ":")
 	}
@@ -262,7 +262,7 @@ func (n *CompositeLit) Format(s fmt.State, c rune) {
 	}
 	scPrintf(s, c, "%c{", emptyNil(n.Type))
 	for i, expr := range n.Elts {
-		sepFormat(s, c, i, expr)
+		sepFormat(s, c, i, expr, ", ")
 	}
 	fmt.Fprint(s, "}")
 }
@@ -315,9 +315,13 @@ func (n *Field) Format(s fmt.State, c rune) {
 	n.Doc.Format(s, c)
 	for i, name := range n.Names {
 		name := name
-		sepFormat(s, c, i, &name)
+		sepFormat(s, c, i, &name, ", ")
 	}
-	scPrintf(s, c, " %c %c", n.Type, n.Tag)
+	prefix := ""
+	if _, ok := n.Type.(*FuncType); ok {
+		prefix = "func"
+	}
+	scPrintf(s, c, " %c%c %c", genFormatter{prefix}, n.Type, n.Tag)
 }
 
 // Format formats a FieldList as a snippet of Go source code.
@@ -328,7 +332,7 @@ func (n *FieldList) Format(s fmt.State, c rune) {
 	n.Opening.Format(s, c)
 	for i, field := range n.List {
 		field := field
-		sepFormat(s, c, i, &field)
+		sepFormat(s, c, i, &field, ", ")
 	}
 	n.Closing.Format(s, c)
 }
@@ -355,14 +359,19 @@ func (n *File) Format(s fmt.State, c rune) {
 		return
 	}
 	n.Doc.Format(s, c)
-	scPrintf(s, c, "package %s\n\nimport (\n", &n.Name)
-	for _, importSpec := range n.Imports {
-		importSpec := importSpec
-		scPrintf(s, c, "%c\n", &importSpec)
+	scPrintf(s, c, "package %c\n", &n.Name)
+	if len(n.Imports) == 1 {
+		scPrintf(s, c, "\nimport %c\n\n", &n.Imports[0])
+	} else if len(n.Imports) > 1 {
+		scPrintf(s, c, "\nimport (\n")
+		for _, importSpec := range n.Imports {
+			importSpec := importSpec
+			scPrintf(s, c, "%c\n", &importSpec)
+		}
+		fmt.Fprintf(s, ")\n\n")
 	}
-	fmt.Fprint(s, ")\n\n")
 	for i, decl := range n.Decls {
-		sepFormat(s, c, i, decl)
+		sepFormat(s, c, i, decl, "\n\n")
 	}
 }
 
@@ -400,7 +409,11 @@ func (n *FuncType) Format(s fmt.State, c rune) {
 	if n == nil {
 		return
 	}
-	scPrintf(s, c, "%c %c", &n.Params, n.Results)
+	results := n.Results
+	if results != nil {
+		results = results.Parens()
+	}
+	scPrintf(s, c, "%c %c", n.Params.Parens(), results)
 }
 
 // Format formats a GenDecl as a snippet of Go source code.
@@ -489,8 +502,12 @@ func (n *InterfaceType) Format(s fmt.State, c rune) {
 	if len(n.Methods.List) == 0 {
 		scPrintf(s, c, "interface{}")
 	} else {
-		methods := NoCommaSepFieldList(n.Methods)
-		scPrintf(s, c, "interface {\n%c}\n", &methods)
+		scPrintf(s, c, "interface {\n")
+		for _, m := range n.Methods.List {
+			f := m.Type.(*FuncType)
+			scPrintf(s, c, "%c %c %c\n", &m.Names[0], &f.Params, f.Results)
+		}
+		scPrintf(s, c, "}\n")
 	}
 }
 
@@ -553,7 +570,7 @@ func (n *ReturnStmt) Format(s fmt.State, c rune) {
 	}
 	scPrintf(s, c, "return ")
 	for i, expr := range n.Results {
-		sepFormat(s, c, i, expr)
+		sepFormat(s, c, i, expr, ", ")
 	}
 }
 
@@ -639,7 +656,7 @@ func (n *TypeSpec) Format(s fmt.State, c rune) {
 	if n == nil {
 		return
 	}
-	scPrintf(s, c, "%c%c %c", n.Doc, &n.Name, emptyNil(n.Type))
+	scPrintf(s, c, "%c%c %c %c", n.Doc, &n.Name, emptyNil(n.Type), n.Comment)
 }
 
 // Format formats a TypeSwitchStmt as a snippet of Go source code.
@@ -670,10 +687,14 @@ func (n *ValueSpec) Format(s fmt.State, c rune) {
 	n.Doc.Format(s, c)
 	for i, name := range n.Names {
 		name := name
-		sepFormat(s, c, i, &name)
+		sepFormat(s, c, i, &name, ", ")
 	}
-	scPrintf(s, c, " %c = ", emptyNil(n.Type))
-	for i, value := range n.Values {
-		sepFormat(s, c, i, value)
+	if len(n.Values) == 0 {
+		scPrintf(s, c, " %c", emptyNil(n.Type))
+	} else {
+		scPrintf(s, c, " %c = ", emptyNil(n.Type))
+		for i, value := range n.Values {
+			sepFormat(s, c, i, value, ", ")
+		}
 	}
 }

@@ -1,0 +1,15 @@
+(
+    type: \type
+        let type = baseType(type);
+        (
+            let primitive = type("primitive").s;
+            "bool"      if primitive = "BOOL"                  else
+            "int"       if primitive = "INT"                   else
+            "float64"   if primitive = "FLOAT"                 else
+            "Decimal64" if primitive = "DECIMAL"               else
+            "string"    if primitive <: {"STRING", "STRING_8"} else
+            "Time"      if primitive <: {"DATE", "DATETIME"}   else
+            $"??${type}??"
+        ) if "primitive" <: (type => .@) else
+        $"??${type}??",
+)

@@ -52,7 +52,10 @@ var (
 		sysl.Expr_BinExpr_FLATTEN: LHSOverRHSStrategy{},
 		sysl.Expr_BinExpr_WHERE:   LHSOverRHSStrategy{},
 	}
+)
 
+//nolint:gochecknoglobals
+var (
 	// key = op, lhs & rhs types
 	valueFunctions = map[string]evalValueFunc{
 		makeKey(sysl.Expr_BinExpr_ADD, ValueInt, ValueInt):        addInt64,

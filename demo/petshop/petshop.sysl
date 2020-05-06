@@ -16,14 +16,23 @@ PetShopModel [package="io.sysl.demo.petshop.model"]:
 
     !table Pet:
         petId <: int [~pk, ~autoinc]
-        breedId <: Breed.breedId
+        breedId <: Breed.breedId?
         name <: string?
         dob <: date?
         numLegs <: int?
+        desexed <: bool?
 
     !table EmployeeTendsPet:
         employeeId <: Employee.employeeId [~pk]
         petId <: Pet.petId [~pk]
+
+    !table EmployeeManagesEmployee:
+        bossId <: Employee.employeeId [~pk]
+        minionId <: Employee.employeeId [~pk]
+
+    !table NoKeysAtAll:
+        name <: string
+        age <: int?
 
 
 PetShopFacade [package="io.sysl.demo.petshop.facade"]:

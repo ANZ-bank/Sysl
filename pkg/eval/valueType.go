@@ -1,6 +1,8 @@
 package eval
 
 import (
+	"fmt"
+
 	sysl "github.com/anz-bank/sysl/pkg/sysl"
 	"github.com/pkg/errors"
 )
@@ -21,22 +23,30 @@ const (
 	ValueNull
 )
 
-//nolint:gochecknoglobals
-var valueTypeNames = map[valueType]string{
-	ValueNoArg:         "ValueNoArg",
-	ValueBool:          "ValueBool",
-	ValueInt:           "ValueInt",
-	ValueFloat:         "ValueFloat",
-	ValueString:        "ValueString",
-	ValueStringDecimal: "ValueStringDecimal",
-	ValueList:          "ValueList",
-	ValueMap:           "ValueMap",
-	ValueSet:           "ValueSet",
-	ValueNull:          "ValueNull",
-}
-
 func (v valueType) String() string {
-	return valueTypeNames[v]
+	switch v {
+	case ValueNoArg:
+		return "ValueNoArg"
+	case ValueBool:
+		return "ValueBool"
+	case ValueInt:
+		return "ValueInt"
+	case ValueFloat:
+		return "ValueFloat"
+	case ValueString:
+		return "ValueString"
+	case ValueStringDecimal:
+		return "ValueStringDecimal"
+	case ValueList:
+		return "ValueList"
+	case ValueMap:
+		return "ValueMap"
+	case ValueSet:
+		return "ValueSet"
+	case ValueNull:
+		return "ValueNull"
+	}
+	panic(fmt.Sprintf("unknown valueType: %d", v))
 }
 
 func getValueType(v *sysl.Value) valueType {

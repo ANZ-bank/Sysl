@@ -1,0 +1,20 @@
+#!/usr/bin/env -S arrai run
+
+let go = //./go;
+
+let line = \t t("sourceContext")("start")("line");
+
+let model = //.encoding.json.decode(//.os.stdin)("apps")("PetShopModel");
+let types = (model("types") orderby .@) >> (name: .@, type: .@value);
+
+let baseType = //./sysl.baseType(model);
+
+$"
+    ${types >> $"
+        struct ${.name} {
+            ${.type("relation")("attrDefs") orderby line(.@value) >> $"
+                ${.@} ${go.type(.@value)}
+            "::\i}
+        }
+    "::\n}
+"

@@ -1,0 +1,46 @@
+diff --git a/pkg/grammar/sysl_parser.go b/pkg/grammar/sysl_parser.go
+
+This patch is needed to remove some mutable global variables from the generated go code!
+Without this, the lexer and parser are not safe to run in multiple threads
+
+
+
+
+index 06e6f61..e7e25e0 100644
+--- a/pkg/grammar/sysl_parser.go
++++ b/pkg/grammar/sysl_parser.go
+@@ -818,6 +818,4 @@ var parserATN = []uint16{
+ }
+-var deserializer = antlr.NewATNDeserializer(nil)
+-var deserializedATN = deserializer.DeserializeFromUInt16(parserATN)
+
+ var literalNames = []string{
+ 	"", "", "", "", "", "'!wrap'", "'!table'", "'!type'", "'!alias'", "'!union'",
+@@ -898,13 +896,6 @@ var ruleNames = []string{
+ 	"abstract_view", "view", "alias", "app_decl", "application", "import_mode",
+ 	"import_stmt", "imports_decl", "sysl_file",
+ }
+-var decisionToDFA = make([]*antlr.DFA, len(deserializedATN.DecisionToState))
+-
+-func init() {
+-	for index, ds := range deserializedATN.DecisionToState {
+-		decisionToDFA[index] = antlr.NewDFA(ds, index)
+-	}
+-}
+
+ type SyslParser struct {
+ 	*antlr.BaseParser
+@@ -913,6 +904,13 @@ type SyslParser struct {
+ func NewSyslParser(input antlr.TokenStream) *SyslParser {
+ 	this := new(SyslParser)
+
++	deserializer := antlr.NewATNDeserializer(nil)
++	deserializedATN := deserializer.DeserializeFromUInt16(parserATN)
++	decisionToDFA := make([]*antlr.DFA, len(deserializedATN.DecisionToState))
++	for index, ds := range deserializedATN.DecisionToState {
++		decisionToDFA[index] = antlr.NewDFA(ds, index)
++	}
++
+ 	this.BaseParser = antlr.NewBaseParser(input)
+
+ 	this.Interpreter = antlr.NewParserATNSimulator(this, deserializedATN, decisionToDFA, antlr.NewPredictionContextCache())

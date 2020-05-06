@@ -159,6 +159,11 @@ type Field struct {
 	Comment *CommentGroup // line comments; or nil
 }
 
+func (n Field) WithDoc(comments ...Comment) *Field {
+	n.Doc = &CommentGroup{List: comments}
+	return &n
+}
+
 // FieldList ...
 type FieldList struct {
 	Opening Token   // opening parenthesis/brace, if any
@@ -177,6 +182,11 @@ type File struct {
 	Comments   []CommentGroup // list of all comments in the source file
 }
 
+func (n File) WithDoc(comments ...Comment) *File {
+	n.Doc = &CommentGroup{List: comments}
+	return &n
+}
+
 // ForStmt ...
 type ForStmt struct {
 	For  Token // "for" keyword
@@ -193,6 +203,11 @@ type FuncDecl struct {
 	Name Ident         // function/method name
 	Type FuncType      // function signature: parameters, results, and "func" keyword
 	Body *BlockStmt    // function body; or nil for external (non-Go) function
+}
+
+func (n FuncDecl) WithDoc(comments ...Comment) *FuncDecl {
+	n.Doc = &CommentGroup{List: comments}
+	return &n
 }
 
 // FuncLit ...
@@ -215,6 +230,11 @@ type GenDecl struct {
 	Lparen Token         // '(', if any
 	Specs  []Spec
 	Rparen Token // ')', if any
+}
+
+func (n GenDecl) WithDoc(comments ...Comment) *GenDecl {
+	n.Doc = &CommentGroup{List: comments}
+	return &n
 }
 
 // GoStmt ...
@@ -244,6 +264,11 @@ type ImportSpec struct {
 	Path    BasicLit      // import path
 	Comment *CommentGroup // line comments; or nil
 	EndPos  Token         // end of spec (overrides Path.Pos if nonzero)
+}
+
+func (n ImportSpec) WithDoc(comments ...Comment) *ImportSpec {
+	n.Doc = &CommentGroup{List: comments}
+	return &n
 }
 
 // IncDecStmt ...
@@ -379,6 +404,11 @@ type TypeSpec struct {
 	Comment *CommentGroup // line comments; or nil
 }
 
+func (n TypeSpec) WithDoc(comments ...Comment) *TypeSpec {
+	n.Doc = &CommentGroup{List: comments}
+	return &n
+}
+
 // TypeSwitchStmt ...
 type TypeSwitchStmt struct {
 	Switch Token     // "switch" keyword
@@ -400,6 +430,11 @@ type ValueSpec struct {
 	Type    Expr          // value type; or nil
 	Values  []Expr        // initial values; or nil
 	Comment *CommentGroup // line comments; or nil
+}
+
+func (n ValueSpec) WithDoc(comments ...Comment) *ValueSpec {
+	n.Doc = &CommentGroup{List: comments}
+	return &n
 }
 
 // Expr ...

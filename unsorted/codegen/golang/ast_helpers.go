@@ -3,9 +3,83 @@ package golang
 import (
 	"fmt"
 	"regexp"
+	"strings"
 )
 
-var idRE = regexp.MustCompile(`^[\pL_][\pL_\pN]*$`) //nolint:gochecknoglobals
+//nolint:gochecknoglobals
+var (
+	idRE = regexp.MustCompile(`^[\pL_][\pL_\pN]*$`)
+
+	commonInitialismsRE = regexp.MustCompile(
+		`(` +
+			`Acl|Api|Ascii|Cpu|Css|Dns|Eof|Guid|Html|Http|Https|Id|Ip|Json|` +
+			`Lhs|Qps|Ram|Rhs|Rpc|Sla|Smtp|Sql|Ssh|Tcp|Tls|Ttl|Udp|Ui|Uid|` +
+			`Uuid|Uri|Url|Utf8|Vm|Xml|Xmpp|Xsrf|Xss` +
+			`)([^a-z]|$)`,
+	)
+	goKeywords = map[string]struct{}{
+		"break":       {},
+		"default":     {},
+		"func":        {},
+		"interface":   {},
+		"select":      {},
+		"case":        {},
+		"defer":       {},
+		"go":          {},
+		"map":         {},
+		"struct":      {},
+		"chan":        {},
+		"else":        {},
+		"goto":        {},
+		"package":     {},
+		"switch":      {},
+		"const":       {},
+		"fallthrough": {},
+		"if":          {},
+		"range":       {},
+		"type":        {},
+		"continue":    {},
+		"for":         {},
+		"import":      {},
+		"return":      {},
+		"var":         {},
+	}
+)
+
+func ExportedName(id string) string {
+	return strings.Title(commonInitialismsRE.ReplaceAllStringFunc(id, strings.ToUpper))
+}
+
+func ExportedID(id string) *Ident {
+	return &Ident{Name: *T(ExportedName(id))}
+}
+
+func NonExportedName(id string) string {
+	if _, ok := goKeywords[id]; ok {
+		id += "_"
+	} else {
+		firstMatch := commonInitialismsRE.FindStringIndex(id)
+		if len(firstMatch) == 0 || firstMatch[0] == 0 {
+			id = strings.ToLower(id[:1]) + id[1:]
+		}
+		id = commonInitialismsRE.ReplaceAllStringFunc(id, strings.ToUpper)
+	}
+	return strings.ToLower(id[:1]) + id[1:]
+}
+
+func NonExportedID(id string) *Ident {
+	return &Ident{Name: *T(NonExportedName(id))}
+}
+
+// Append creates an a = append(a, b) statement.
+func Append(slice Expr, elt Expr) *AssignStmt {
+	return Assign(slice)("=")(Call(I("append"), slice, elt))
+}
+
+// Addr creates an &Expr expression.
+func AddrOf(x Expr) *UnaryExpr {
+	return Unary("&", x)
+}
 
 // ArrayN creates a `[n]elt` ArrayType.
 func ArrayN(n int, elt Expr) *ArrayType {
@@ -28,11 +102,15 @@ func AssertType(x Expr) *TypeAssertExpr {
 }
 
 // Assign creates an = AssignStmt.
-func Assign(lhs []Expr, rhs ...Expr) *AssignStmt {
-	if len(rhs) == 0 {
-		panic("Missing rhs")
+func Assign(lhs ...Expr) func(op string) func(rhs ...Expr) *AssignStmt {
+	return func(op string) func(rhs ...Expr) *AssignStmt {
+		return func(rhs ...Expr) *AssignStmt {
+			if len(rhs) == 0 {
+				panic("Missing rhs")
+			}
+			return &AssignStmt{LHS: lhs, Tok: *T(op), RHS: rhs}
+		}
 	}
-	return &AssignStmt{LHS: lhs, Tok: *T("="), RHS: rhs}
 }
 
 // Binary creates a BinaryExpr.
@@ -55,9 +133,14 @@ func BreakTo(label string) *BranchStmt {
 	return &BranchStmt{Tok: *T("break"), Label: I(label)}
 }
 
-// Call creates a CallStmt.
+// Call creates a CallExpr.
 func Call(fun Expr, args ...Expr) *CallExpr {
 	return &CallExpr{Fun: fun, Args: args}
+}
+
+// Call creates a Call ExprStmt.
+func CallStmt(fun Expr, args ...Expr) *ExprStmt {
+	return &ExprStmt{X: Call(fun, args...)}
 }
 
 // CallVararg creates an `arg...` CallStmt.
@@ -66,8 +149,10 @@ func CallVararg(fun Expr, args ...Expr) *CallExpr {
 }
 
 // Case creates a `case x, y, z:` CaseClause.
-func Case(list []Expr, stmts ...Stmt) *CaseClause {
-	return &CaseClause{List: list, Body: stmts}
+func Case(list ...Expr) func(stmts ...Stmt) *CaseClause {
+	return func(stmts ...Stmt) *CaseClause {
+		return &CaseClause{List: list, Body: stmts}
+	}
 }
 
 // Const creates a `const` GenDecl.
@@ -88,6 +173,16 @@ func Continue() *BranchStmt {
 // ContinueTo creates a `continue label` BranchStmt.
 func ContinueTo(label string) *BranchStmt {
 	return &BranchStmt{Tok: *T("continue"), Label: I(label)}
+}
+
+// Commentf creates a Comment from a string, adding "// " in front.
+func Commentf(format string, args ...interface{}) Comment {
+	return Comment{Token: *T(fmt.Sprintf(format, args...))}
+}
+
+// Comments create a CommentGroup from lines.
+func Comments(lines ...Comment) *CommentGroup {
+	return &CommentGroup{List: lines}
 }
 
 // Composite creates a CompositeLit.
@@ -135,13 +230,21 @@ func Dec(x Expr) *IncDecStmt {
 }
 
 // Dot creates a SelectorExpr.
-func Dot(x Expr, id string) *SelectorExpr {
-	return &SelectorExpr{X: x, Sel: *I(id)}
+func Dot(x Expr, id string, ids ...string) *SelectorExpr {
+	if len(ids) == 0 {
+		return &SelectorExpr{X: x, Sel: *I(id)}
+	}
+	return Dot(Dot(x, id, ids[:len(ids)-1]...), ids[len(ids)-1])
 }
 
 // Fallthrough creates a `fallthrough` BranchStmt.
 func Fallthrough() *BranchStmt {
 	return &BranchStmt{Tok: *T("fallthrough")}
+}
+
+// Fields creates a FieldList.
+func Fields(fields ...Field) *FieldList {
+	return &FieldList{List: fields}
 }
 
 // Float creates a BasicLit for a float64.
@@ -151,9 +254,20 @@ func Float(v float64) *BasicLit {
 
 // Func creates a FuncLit.
 func Func(params FieldList, results *FieldList, stmts ...Stmt) *FuncLit {
-	return &FuncLit{
+	return FuncT(FuncType{Params: params, Results: results}, stmts...)
+}
+
+// FuncT creates a FuncLit from a FuncType and a body.
+func FuncT(t FuncType, stmts ...Stmt) *FuncLit {
+	return &FuncLit{Type: t, Body: BlockStmt{List: stmts}}
+}
+
+// FuncD creates a FuncDecl.
+func FuncD(name string, params FieldList, results *FieldList, stmts ...Stmt) *FuncDecl {
+	return &FuncDecl{
+		Name: *I(name),
 		Type: FuncType{Params: params, Results: results},
-		Body: BlockStmt{List: stmts},
+		Body: &BlockStmt{List: stmts},
 	}
 }
 
@@ -182,6 +296,11 @@ func Idents(ids ...string) []Ident {
 // If creates an IfStmt.
 func If(init Stmt, cond Expr, stmts ...Stmt) *IfStmt {
 	return &IfStmt{Init: init, Cond: cond, Body: *Block(stmts...)}
+}
+
+// Iota creates an iota reference.
+func Iota() *Ident {
+	return I("iota")
 }
 
 // WithElseIf creates a copy of IfStmt with an Else stmt added.
@@ -214,6 +333,31 @@ func Import(imports ...ImportSpec) *GenDecl {
 	return &GenDecl{Tok: *T("import"), Specs: specs}
 }
 
+func Imports(imports ...string) []ImportSpec {
+	specs := []ImportSpec{}
+	for _, i := range imports {
+		tok := i
+		if tok != "" {
+			tok = `"` + tok + `"`
+		}
+		specs = append(specs, ImportSpec{
+			Path: BasicLit{Token: *T(tok)},
+		})
+	}
+	return specs
+}
+
+func ImportGroups(specs ...[]ImportSpec) []ImportSpec {
+	result := []ImportSpec{}
+	for _, spec := range specs {
+		if len(result) > 0 && len(spec) > 0 {
+			result = append(result, ImportSpec{Path: BasicLit{Token: *T("")}})
+		}
+		result = append(result, spec...)
+	}
+	return result
+}
+
 // Inc creates an `x++` IncDecStmt.
 func Inc(x Expr) *IncDecStmt {
 	return &IncDecStmt{X: x, Tok: *T("++")}
@@ -225,12 +369,14 @@ func Index(a, b Expr) *IndexExpr {
 }
 
 // Init creates an := AssignStmt.
-func Init(idents []string, rhs ...Expr) *AssignStmt {
-	lhs := make([]Expr, 0, len(idents))
-	for _, ident := range idents {
-		lhs = append(lhs, I(ident))
+func Init(idents ...string) func(rhs ...Expr) *AssignStmt {
+	return func(rhs ...Expr) *AssignStmt {
+		lhs := make([]Expr, 0, len(idents))
+		for _, ident := range idents {
+			lhs = append(lhs, I(ident))
+		}
+		return &AssignStmt{LHS: lhs, Tok: *T(":="), RHS: rhs}
 	}
-	return &AssignStmt{LHS: lhs, Tok: *T(":="), RHS: rhs}
 }
 
 // Int creates a BasicLit for an int.
@@ -243,6 +389,12 @@ func KV(key, value Expr) *KeyValueExpr {
 	return &KeyValueExpr{Key: key, Value: value}
 }
 
+// Lit creates a BasicLit for an arbitrary type. It should only be used for
+// primitives.
+func Lit(v interface{}) *BasicLit {
+	return &BasicLit{Token{Text: fmt.Sprintf("%#v", v)}}
+}
+
 // Map creates a MapType.
 func Map(key, value Expr) *MapType {
 	return &MapType{Key: key, Value: value}
@@ -253,13 +405,15 @@ func Nil() *Ident {
 	return I("nil")
 }
 
-// ParenFields creates a ()-delimited FieldList.
-func ParenFields(fields ...Field) *FieldList {
-	return &FieldList{
-		Opening: *T("("),
-		List:    fields,
-		Closing: *T(")"),
-	}
+func Panic(expr Expr) Stmt {
+	return CallStmt(I("panic"), expr)
+}
+
+// Parens adds "(" and ")" opening and closing to a FieldList.
+func (n FieldList) Parens() *FieldList {
+	n.Opening = *T("(")
+	n.Closing = *T(")")
+	return &n
 }
 
 // Range creates a RangeStmt.
@@ -272,14 +426,24 @@ func Recv(ch Expr) *UnaryExpr {
 	return Unary("<-", ch)
 }
 
-// RecvAssignComm creates a `case x, y = <-ch:` CommClause.
-func RecvAssignComm(lhs []Expr, ch Expr, stmts ...Stmt) *CommClause {
-	return &CommClause{Comm: Assign(lhs, Recv(ch)), Body: stmts}
+// RecvAssignComm creates a `case x, y op <-ch:` CommClause.
+func RecvAssignComm(lhs ...Expr) func(op string) func(ch Expr) func(stmts ...Stmt) *CommClause {
+	return func(op string) func(ch Expr) func(stmts ...Stmt) *CommClause {
+		return func(ch Expr) func(stmts ...Stmt) *CommClause {
+			return func(stmts ...Stmt) *CommClause {
+				return &CommClause{Comm: Assign(lhs...)(op)(Recv(ch)), Body: stmts}
+			}
+		}
+	}
 }
 
 // RecvInitComm creates a `case x, y := <-ch:` CommClause.
-func RecvInitComm(lhs []string, ch Expr, stmts ...Stmt) *CommClause {
-	return &CommClause{Comm: Init(lhs, Recv(ch)), Body: stmts}
+func RecvInitComm(lhs ...string) func(ch Expr) func(stmts ...Stmt) *CommClause {
+	return func(ch Expr) func(stmts ...Stmt) *CommClause {
+		return func(stmts ...Stmt) *CommClause {
+			return &CommClause{Comm: Init(lhs...)(Recv(ch)), Body: stmts}
+		}
+	}
 }
 
 // Return creates a ReturnStmt.
@@ -355,7 +519,7 @@ func Types(types ...TypeSpec) *GenDecl {
 func TypeSwitch(init Stmt, x string, y Expr, body ...Stmt) *TypeSwitchStmt {
 	var assign Stmt
 	if x != "" {
-		assign = Init([]string{x}, AssertType(y))
+		assign = Init(x)(AssertType(y))
 	} else {
 		assign = &ExprStmt{AssertType(y)}
 	}

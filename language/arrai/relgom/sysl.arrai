@@ -1,0 +1,9 @@
+(
+    baseType: \model //.fn.fix(\baseType
+        \type
+        (
+            let path = type("typeRef")("ref")("path").a;
+            baseType(model("types")(path(0).s)("relation")("attrDefs")(path(1).s))
+        ) if "typeRef" <: (type => .@) else type
+    ),
+)

@@ -1,0 +1,18 @@
+let grpc = //./grpc;
+\wrap (
+    field: \. $`:{grpc.type(.)}: :{//.str.sub(.key, "-", "")}: = :{.attrs.rpcId}:;`,
+    imports: \fields
+        fields where(//.str.contains(grpc.type(.@item), "google.protobuf")) >>
+            $`import ":{//.str.sub(grpc.type(.), ".", "/")}:.proto";`,
+    endpointInfo: \ep
+        let method = //.str.sub(//.str.title(//.str.lower(ep.name)), "-", "")
+        let paramName = method + "Request" if wrap else $":{ep.params >> grpc.type(.)::, }:"
+        let streamRes = //.str.sub(ep.ret("ok"), "sequence of", "stream") if ep.attrs.stream else //.str.sub(ep.ret("ok"), "sequence of ", "") + "s"
+        let responseName = method + "Response" if wrap else streamRes
+        (
+            method:       method,
+            paramName:    paramName,
+            responseName: responseName,
+            rpcMethod:    $`rpc :{method}:(:{paramName}:) returns (:{responseName}:) {}`,
+        ),
+)

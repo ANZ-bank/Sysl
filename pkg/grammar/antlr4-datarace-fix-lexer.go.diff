@@ -1,0 +1,43 @@
+diff --git a/pkg/grammar/sysl_lexer.go b/pkg/grammar/sysl_lexer.go
+
+This patch is needed to remove some mutable global variables from the generated go code!
+Without this, the lexer and parser are not safe to run in multiple threads
+
+
+
+
+index 11ab4f7..d98f55f 100644
+--- a/pkg/grammar/sysl_lexer.go
++++ b/pkg/grammar/sysl_lexer.go
+@@ -782,7 +782,4 @@ var serializedLexerAtn = []uint16{
+
+-var lexerDeserializer = antlr.NewATNDeserializer(nil)
+-var lexerAtn = lexerDeserializer.DeserializeFromUInt16(serializedLexerAtn)
+-
+ var lexerChannelNames = []string{
+ 	"DEFAULT_TOKEN_CHANNEL", "HIDDEN",
+ }
+@@ -870,17 +867,16 @@ type SyslLexer struct {
+ 	// TODO: EOF string
+ }
+
+-var lexerDecisionToDFA = make([]*antlr.DFA, len(lexerAtn.DecisionToState))
++func NewSyslLexer(input antlr.CharStream) *SyslLexer {
+
+-func init() {
++	l := new(SyslLexer)
++
++	lexerDeserializer := antlr.NewATNDeserializer(nil)
++	lexerAtn := lexerDeserializer.DeserializeFromUInt16(serializedLexerAtn)
++	lexerDecisionToDFA := make([]*antlr.DFA, len(lexerAtn.DecisionToState))
+ 	for index, ds := range lexerAtn.DecisionToState {
+ 		lexerDecisionToDFA[index] = antlr.NewDFA(ds, index)
+ 	}
+-}
+-
+-func NewSyslLexer(input antlr.CharStream) *SyslLexer {
+-
+-	l := new(SyslLexer)
+
+ 	l.BaseLexer = antlr.NewBaseLexer(input)
+ 	l.Interpreter = antlr.NewLexerATNSimulator(l, lexerAtn, lexerDecisionToDFA, antlr.NewPredictionContextCache())

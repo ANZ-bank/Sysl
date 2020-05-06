@@ -16,24 +16,42 @@ type goFunc struct {
 	ret  *sysl.Type
 }
 
+func kindToPrimitiveType(kind reflect.Kind) (sysl.Type_Primitive, bool) {
+	switch kind {
+	case reflect.Bool:
+		return sysl.Type_BOOL, true
+	case reflect.Int:
+		return sysl.Type_INT, true
+	case reflect.Int16:
+		return sysl.Type_INT, true
+	case reflect.Int32:
+		return sysl.Type_INT, true
+	case reflect.Int64:
+		return sysl.Type_INT, true
+	case reflect.String:
+		return sysl.Type_STRING, true
+	default:
+		return 0, false
+	}
+}
+
+func valueTypeToPrimitiveType(t valueType) (sysl.Type_Primitive, bool) {
+	switch t {
+	case ValueBool:
+		return sysl.Type_BOOL, true
+	case ValueInt:
+		return sysl.Type_INT, true
+	case ValueFloat:
+		return sysl.Type_FLOAT, true
+	case ValueString:
+		return sysl.Type_STRING, true
+	default:
+		return 0, false
+	}
+}
+
 //nolint:gochecknoglobals
 var (
-	kindToPrimitiveType = map[reflect.Kind]sysl.Type_Primitive{
-		reflect.Bool:   sysl.Type_BOOL,
-		reflect.Int:    sysl.Type_INT,
-		reflect.Int16:  sysl.Type_INT,
-		reflect.Int32:  sysl.Type_INT,
-		reflect.Int64:  sysl.Type_INT,
-		reflect.String: sysl.Type_STRING,
-	}
-
-	valueTypeToPrimitiveType = map[valueType]sysl.Type_Primitive{
-		ValueBool:   sysl.Type_BOOL,
-		ValueInt:    sysl.Type_INT,
-		ValueFloat:  sysl.Type_FLOAT,
-		ValueString: sysl.Type_STRING,
-	}
-
 	stringType = &sysl.Type{
 		Type: &sysl.Type_Primitive_{
 			Primitive: sysl.Type_STRING,
@@ -50,19 +68,13 @@ var (
 		Type: &sysl.Type_List_{
 			List: &sysl.Type_List{
 				Type: &sysl.Type{
-					Type: &sysl.Type_Primitive_{
-						Primitive: sysl.Type_STRING,
-					},
+					Type: &sysl.Type_Primitive_{Primitive: sysl.Type_STRING},
 				},
 			},
 		},
 	}
 
-	boolType = &sysl.Type{
-		Type: &sysl.Type_Primitive_{
-			Primitive: sysl.Type_BOOL,
-		},
-	}
+	boolType = &sysl.Type{Type: &sysl.Type_Primitive_{Primitive: sysl.Type_BOOL}}
 
 	// GoFuncMap is Map of Function Names to goFunc{}
 	GoFuncMap = map[string]goFunc{
@@ -125,7 +137,7 @@ func valueToReflectValue(v *sysl.Value, t *sysl.Type) reflect.Value {
 
 func isValueExpectedType(v *sysl.Value, t *sysl.Type) bool {
 	vType := getValueType(v)
-	type1, has := valueTypeToPrimitiveType[vType]
+	type1, has := valueTypeToPrimitiveType(vType)
 	inType := t.GetPrimitive()
 	// if both are primitive types
 	if has && inType != sysl.Type_NO_Primitive {
@@ -157,7 +169,7 @@ func isValueExpectedType(v *sysl.Value, t *sysl.Type) bool {
 
 func isReflectValueExpectedType(r reflect.Value, typ *sysl.Type) bool {
 	kind := r.Kind()
-	_, has := kindToPrimitiveType[kind]
+	_, has := kindToPrimitiveType(kind)
 	if has {
 		return true
 	}
@@ -165,7 +177,7 @@ func isReflectValueExpectedType(r reflect.Value, typ *sysl.Type) bool {
 		if typ.GetList() == nil || typ.GetSet() != nil {
 			return false
 		}
-		_, has = kindToPrimitiveType[r.Index(0).Kind()]
+		_, has = kindToPrimitiveType(r.Index(0).Kind())
 		return has
 	}
 	return false
