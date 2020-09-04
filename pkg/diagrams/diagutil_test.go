@@ -1,6 +1,7 @@
 package diagrams
 
 import (
+	"fmt"
 	"testing"
 
 	"github.com/anz-bank/sysl/pkg/syslutil"
@@ -90,7 +91,7 @@ func TestEncode6bit(t *testing.T) {
 
 	for _, v := range data {
 		v := v
-		t.Run(string(int(v.input)), func(tt *testing.T) {
+		t.Run(fmt.Sprint(int(v.input)), func(tt *testing.T) {
 			actual := encode6bit(v.input)
 			assert.Equal(tt, v.expected, actual)
 		})
