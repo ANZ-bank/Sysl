@@ -1,0 +1,25 @@
+let render = \metadata
+    let traceIds = metadata.entries => .@item.request.headers('Traceid')?:{};
+    $`
+        <!DOCTYPE html>
+        <html lang="en">
+        <head>
+            <meta charset="UTF-8">
+            <title>Debug Traces</title>
+            ${//{./debug_style}}
+        </head>
+        <body>
+        <h1>Debug Traces</h1>
+
+        <ul>
+        ${traceIds orderby . >> $`
+            <li><a href="/-/trace/${.}">${.}</a></li>
+        `::\i}
+        </ul>
+        </body>
+        </html>
+    `;
+
+(
+    :render
+)

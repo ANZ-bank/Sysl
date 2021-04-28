@@ -1,0 +1,47 @@
+{
+    "entries": [
+      {
+        "serviceName": "PaymentServer",
+        "request": {
+          "method": "POST",
+          "route": "/pay",
+          "headers": {
+            "Accept": [
+              "*/*"
+            ],
+            "Accept-Encoding": [
+              "gzip"
+            ],
+            "Content-Length": [
+              "7"
+            ],
+            "Content-Type": [
+              "application/x-www-form-urlencoded"
+            ],
+            "Proxy-Connection": [
+              "Keep-Alive"
+            ],
+            "Traceid": [
+              "123"
+            ],
+            "User-Agent": [
+              "curl/7.64.1"
+            ]
+          },
+          "body": "{\"a\":1}",
+          "url": "/"
+        },
+        "response": {
+          "statusCode": 500,
+          "status": "Internal Server Error",
+          "latency": 485948,
+          "headers": {
+            "Content-Type": [
+              "application/json;charset=UTF-8"
+            ]
+          },
+          "body": "{\"status\":{\"code\":\"9999\",\"description\":\"Unknown Error\"}}"
+        }
+      }
+    ]
+  }

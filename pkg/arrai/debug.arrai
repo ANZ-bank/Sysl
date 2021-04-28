@@ -1,0 +1,20 @@
+# Renders the sysl-go debug trace details screen.
+
+let (:simplify, :tuplify, ...) = //{./json};
+
+let cleanHeaders = \hs hs >> cond . {[x]: x, _: .};
+let cleanEntry = \e e +> (
+    request: e.request +> (headers: cleanHeaders(e.request.headers)),
+    response: e.response +> (headers: cleanHeaders(e.response.headers)),
+);
+let cleanMetadata = \mj 
+    tuplify({}, simplify(mj), \k \v k != 'headers') -> \m
+        m +> (entries: m.entries?:[] >> cleanEntry(.));
+let parseMetadata = \mj cleanMetadata(//encoding.json.decode(mj));
+
+(
+    index: \m
+        //{./debug_index}.render(parseMetadata(m)),
+    trace: \m \traceId \svg
+        //{./debug_trace}.render(parseMetadata(m), traceId, svg),
+)

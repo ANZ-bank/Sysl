@@ -96,6 +96,35 @@ let rec _topsort = \graph \sorted \sources
             let sources = (sources &~ {tail}) | (adjs & unimported(graph));
             _topsort(graph, sorted ++ [tail], sources)
     };
+<<<<<<< HEAD
+# Explore constructs a dependency graph by starting at source and calling step
+# to find adjacent nodes. Deps is the graph constructed so far.
+# Self-edges are ignored.
+let rec _explore = \source \step \deps
+    cond {
+        {source} & (deps => .@): deps,
+        _:
+            let next = step(source) where . != source;
+            let deps = deps | {(@:source, @value: next)};
+            reduce(next orderby ., \v \i _explore(i, step, v), deps)
+    };
+let explore = \source \step _explore(source, step, {});
+
+# Unimported returns the set of nodes with no in-edges.
+let unimported = \g (g => .@) where !({.} & //rel.union(g => .@value));
+
+# Topsort returns an array of nodes in graph in dependency order.
+let rec _topsort = \graph \sorted \sources
+    cond sources orderby . {
+            []: sorted,
+            [..., tail]: 
+                let adjs = graph(tail);
+                let graph = graph where .@ != tail;
+                let sources = (sources &~ {tail}) | (adjs & unimported(graph));
+                _topsort(graph, sorted ++ [tail], sources)
+        };
+=======
+>>>>>>> origin/master
 let topsort = \graph _topsort(graph, [], unimported(graph));
 
 # TODO: this should be part of stdlib
@@ -228,12 +257,19 @@ let dictMerge = \a \b
     :explore,
     :filterTree,
     :invokeMacro,
+<<<<<<< HEAD
+    :ranked,
+    :reduce,
+    :reduceFlat,
+    :safetuple,
+=======
     :simpleTransform,
     :ranked,
     :reduce,
     :reduceFlat,
     :reduceObj,
     :ranked,
+>>>>>>> origin/master
     :simpleTransform,
     :topsort,
     :unimported,

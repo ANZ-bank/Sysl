@@ -1,0 +1,35 @@
+# Helper functions for working with JSON data.
+
+# Returns a "simplified" structure, replacing decoded tuples with their internal values.
+# Intended for cases in which the types of null values is not interesting.
+let rec simplify = \j
+    cond j {
+        [...]: j >> simplify(.),
+        (:a): simplify(a),
+        (:s): simplify(s),
+        (): {},
+        _: cond {
+            j < 99999999999999999999: j,
+            _: j >> simplify(.),
+        },
+    }
+;
+
+# Returns a copy of v with all dicts satifying pred converted to tuples.
+# This is essentially decoding JSON with a logical schema.
+let rec _tuplify = \k \v \pred
+    cond v {
+        [...]: v >>> \k2 \v2 _tuplify(k2, v2, pred),
+        {...}: v => _tuplify({}, ., pred),
+        (...): v :> _tuplify({}, ., pred),
+        {x: ...}: 
+            let v = v >>> \k2 \v2 _tuplify(k2, v2, pred);
+            cond {pred(k, v): //tuple(v), _: v},
+        _: v
+    };
+let tuplify = \json _tuplify({}, json, \k \v true);
+
+(
+    :simplify,
+    :tuplify,
+)

@@ -1,5 +1,50 @@
 # Concatenates the contents of local imports to produce a self-contained script.
 
+<<<<<<< HEAD
+let (:explore, :unimported, :topsort, ...) = //{./util};
+
+# Matches local arr.ai imports.
+let import = //re.compile('//\\{\\./([\\w/.]+)\\}');
+
+# Returns the set of local arr.ai imports in f.
+let step = \f import.match($`${//os.file(f)}`) => ((.@item(1) rank (:.@)) ++ '.arrai');
+
+# Returns the canonical variable name for a file's contents.
+let toName = \filename $`${//seq.sub('.', '_', filename)}`;
+# Regex pattern to match local import expressions.
+let inlineImport = //re.compile(`//\{\./([^}]+)\}`);
+# Returns a copy of content with the imports replace with variable names.
+# TODO: Fix //re.sub and use toName.
+let cleanImports = \content inlineImport.sub('${1}_arrai', content);
+
+# Returns an arr.ai file concatenating f and all of its transitive dependencies.
+let concat = \f
+    let div = $`### ${//seq.repeat(72, '-')} ###`;
+    $`${(topsort(explore(f, step)) rank (@:-.@) >>
+        let c = $`${//os.file(.)}`;
+        let c = cond {
+            . = f: c,
+            _: cond {
+                # TODO: Handle presence of only non-meaningful semicolons.
+                //seq.contains(';', c):
+                    let [...head, tail] = //seq.split(';', c);
+                    //seq.join(';', head ++ [$`let ${toName(.)} = ${tail};`]),
+                _: $`let ${toName(.)} = ${c};`
+            }
+        };
+
+        $`
+            ${div}
+            ###  ${.:-71s} ###
+            ${div}
+
+            ${cleanImports(c)}`
+    )::\i\n}`
+;
+
+let [_, filename] = //os.args;
+concat(filename)
+=======
 let (:explore, :topsort, ...) = //{./util};
 
 # Regex pattern to match local arr.ai import expressions.
@@ -49,3 +94,4 @@ let concat = \source
 (
     :concat,
 )
+>>>>>>> origin/master

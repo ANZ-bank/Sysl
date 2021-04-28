@@ -1,0 +1,51 @@
+let render = \metadata \traceId \sd $`
+    <!DOCTYPE html>
+    <html lang="en">
+    <head>
+    <meta charset="UTF-8">
+    <title>Trace Details</title>
+    ${//{./debug_style}}
+    </head>
+    <body>
+    <p><a href="/-/trace">Back</a></p>
+
+    <p class="traceid">ID: ${traceId}</p>
+    <h1>Trace Details</h1>
+
+    ${sd}
+
+    ${metadata.entries where .@item.request.headers('Traceid')?:{} = traceId >>
+         //{./debug_subtrace}.render(.)
+    ::\i}
+
+    <script>
+    function display(href) {
+    let [_, lhs, arrow, rhs] = href.replace(/%20/g, ' ').match(/#([^-<>]+)([-<>]+)(.+)/);
+    lhs = lhs && lhs.trim();
+    rhs = rhs && rhs.trim();
+    arrow = arrow && arrow.trim();
+    console.log(lhs, arrow, rhs);
+
+    const tc = rhs.replace(/[ /]/g, '_').toLowerCase();
+    console.log(tc);
+    document.querySelectorAll('div.subtrace').forEach(d => d.setAttribute('style', 'display:none'));
+    document.querySelectorAll('div.subtrace.'+tc).forEach(d => d.setAttribute('style', 'display:block'));
+    }
+
+    document.querySelectorAll('a').forEach(
+    a => a.addEventListener('mouseover',
+        e => {
+        display(e.currentTarget.getAttribute('href'))
+        document.querySelectorAll('a').forEach(a => a.removeAttribute('style'))
+        e.currentTarget.setAttribute('style', 'font-weight: bold');
+        }
+    )
+    )
+    </script>
+    </body>
+    </html>
+`;
+
+(
+    :render,
+)

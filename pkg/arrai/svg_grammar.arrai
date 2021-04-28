@@ -1,6 +1,6 @@
 # A grammar to parse SVG documents.
 
-{://grammar.lang.wbnf:
+let g = {://grammar.lang.wbnf:
 doc         -> header? node;
 header      -> "<?xml" [^?]* "?>";
 node        -> "<" tag=name attr* ("/>" | (">" (node | comment | text)* "</" name ">"));
@@ -12,4 +12,6 @@ text        -> [^<]+;
 
 thisisntusedanywhere -> "<";
 .wrapRE     -> /{\s*()\s*};
-:}
+:};
+
+g

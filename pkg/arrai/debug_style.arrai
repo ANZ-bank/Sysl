@@ -1,0 +1,68 @@
+let debug_style = $`
+<link href="https://fonts.googleapis.com/css2?family=B612+Mono:wght@400&family=Roboto+Mono&display=swap" rel="stylesheet">
+<style>
+body {
+    max-width: 900px;
+    margin: 40px auto;
+    padding: 10px 40px;
+
+    font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
+
+    background-color: #fdfdfd;
+    border: 1px solid #e1e4e8;
+    border-radius: 2px;
+}
+
+h1, h2, h3 {
+    border-bottom: 1px solid #eaecef;
+}
+
+.traceid {
+    float: right;
+    color: grey;
+}
+
+table {
+    border-collapse: collapse;
+}
+
+td, th {
+    padding: 4px 8px;
+    border: thin solid grey;
+}
+
+td, pre {
+    font-family: 'B612 Mono', 'Courier New', monospace;
+    font-size: 0.9em;
+}
+
+.method {
+    line-height: 20px;
+    background-color: rgb(36, 143, 178);
+    color: white;
+    text-transform: uppercase;
+    font-family: Montserrat, sans-serif;
+    padding: 3px 10px;
+}
+
+.route {
+    font-family: 'B612 Mono', 'Courier New', monospace;
+}
+
+.url {
+    float: right;
+    font-size: small;
+    text-decoration: underline;
+    color: grey;
+    line-height: 0;
+}
+
+.status {
+    color: red;
+}
+.status._2 {
+    color: green;
+}
+</style>
+`;
+debug_style

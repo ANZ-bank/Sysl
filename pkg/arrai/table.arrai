@@ -1,0 +1,24 @@
+# Formats data as tables.
+
+# Returns data formatted as an HTML table.
+let htmlTable = \data $`
+    <table>
+        <tr><th>Key</th><th>Value</th></tr>
+        ${(data => \(:@, :@value)
+            $`<tr><td>${@}</td><td>${@value}</td></tr>`
+        ) orderby .::\i}
+    </table>
+`;
+
+# Returns data formatted as a Markdown table.
+let markdownTable = \data $`
+    |Key|Value|
+    ${(data => \(:@, :@value)
+        $`|${@}|${@value}|`
+    ) orderby .::\i}
+`;
+
+(
+    html: htmlTable,
+    markdown: markdownTable,
+)
